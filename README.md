@@ -1,4 +1,4 @@
-# WhatsApp-Group-Contact-Extractor
+# WhatsApp-Group-Contacts-Exporter
 WhatsApp Group Contact Extractor
 
 

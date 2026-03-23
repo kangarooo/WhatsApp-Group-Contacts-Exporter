@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WA Group Extractor</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #1e242e;
+      --border: #30363d;
+      --green: #25d366;
+      --green-dim: #1a9148;
+      --green-glow: rgba(37,211,102,0.15);
+      --text: #e6edf3;
+      --text-muted: #7d8590;
+      --red: #f85149;
+      --yellow: #d29922;
+      --blue: #58a6ff;
+      --radius: 8px;
+    }
+
+    body {
+      width: 380px;
+      min-height: 480px;
+      max-height: 600px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .logo {
+      width: 32px; height: 32px;
+      background: var(--green);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 0 12px var(--green-glow);
+    }
+    .header-text h1 {
+      font-size: 14px; font-weight: 700; letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .header-text p {
+      font-size: 11px; color: var(--text-muted); margin-top: 1px;
+    }
+
+    /* ── Status bar ── */
+    #status-bar {
+      padding: 8px 16px;
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 6px;
+      min-height: 32px;
+      flex-shrink: 0;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .status-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.red   { background: var(--red); }
+    .status-dot.yellow{ background: var(--yellow); }
+    #status-text { color: var(--text-muted); flex: 1; }
+
+    /* ── Stats row ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 1px;
+      background: var(--border);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .stat {
+      background: var(--surface);
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .stat-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 20px; font-weight: 500;
+      color: var(--green);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 10px; color: var(--text-muted);
+      margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    /* ── Progress bar ── */
+    #progress-wrap {
+      display: none;
+      padding: 0 16px 10px;
+      flex-shrink: 0;
+    }
+    .progress-label {
+      font-size: 11px; color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      margin-bottom: 5px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .progress-track {
+      height: 4px; background: var(--surface2);
+      border-radius: 2px; overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .progress-fill {
+      height: 100%; width: 0%;
+      background: var(--green);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 6px var(--green);
+    }
+    @keyframes indeterminate {
+      0%   { transform: translateX(-100%); width: 40%; }
+      100% { transform: translateX(300%);  width: 40%; }
+    }
+    .progress-fill.running {
+      width: 40% !important;
+      animation: indeterminate 1.2s ease-in-out infinite;
+    }
+
+    /* ── Actions ── */
+    .actions {
+      padding: 12px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      flex-shrink: 0;
+    }
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 9px 14px;
+      border-radius: var(--radius);
+      border: none; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 600;
+      transition: all 0.15s;
+      width: 100%;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: var(--green);
+      color: #0d1117;
+    }
+    .btn-primary:hover { background: #2de073; }
+    .btn-primary:disabled { background: var(--green-dim); color: #0d1117; opacity: 0.6; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--green); color: var(--green); }
+    .btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid transparent;
+    }
+    .btn-danger:hover { border-color: var(--red); background: rgba(248,81,73,0.08); }
+    .btn-google {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .btn-google:hover { border-color: #4285F4; color: #4285F4; }
+    .btn-google:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-row .btn { flex: 1; }
+
+    /* ── Instructions ── */
+    .instructions {
+      margin: 0 16px 12px;
+      padding: 10px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .instructions strong { color: var(--text); }
+    .instructions ol { padding-left: 14px; margin-top: 4px; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: flex; gap: 6px;
+      padding: 0 16px 10px;
+      flex-shrink: 0;
+    }
+    .filter-bar input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      padding: 7px 10px;
+      outline: none;
+    }
+    .filter-bar input:focus { border-color: var(--green); }
+    .filter-bar select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      padding: 7px 8px;
+      outline: none; cursor: pointer;
+    }
+
+    /* ── Contact list ── */
+    .list-wrap {
+      flex: 1;
+      overflow-y: auto;
+      border-top: 1px solid var(--border);
+    }
+    .list-wrap::-webkit-scrollbar { width: 4px; }
+    .list-wrap::-webkit-scrollbar-track { background: transparent; }
+    .list-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .contact-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 16px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    .contact-item:hover { background: var(--surface); }
+
+    .avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-name {
+      font-size: 12.5px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .contact-meta {
+      font-size: 10.5px; color: var(--text-muted); margin-top: 1px;
+      font-family: 'DM Mono', monospace;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .badge {
+      font-size: 9.5px; padding: 2px 6px;
+      border-radius: 4px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      flex-shrink: 0;
+    }
+    .badge-admin   { background: rgba(37,211,102,0.15); color: var(--green); }
+    .badge-past    { background: rgba(248,81,73,0.12);  color: var(--red); }
+    .badge-added   { background: rgba(88,166,255,0.15); color: var(--blue); }
+    .badge-left    { background: rgba(210,153,34,0.15); color: var(--yellow); }
+    .badge-member  { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+    .badge-saved   { background: rgba(255,215,0,0.12); color: #f0c040; border: 1px solid rgba(255,215,0,0.2); }
+    .badge-unsaved { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+
+    .badges-col {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+      flex-shrink: 0;
+    }
+
+    .contact-phone-row {
+      margin-top: 3px;
+    }
+    .phone-pill {
+      display: inline-block;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .phone-pill.has-phone {
+      background: rgba(37,211,102,0.10);
+      color: var(--green);
+      border: 1px solid rgba(37,211,102,0.2);
+    }
+    .phone-pill.no-phone {
+      background: rgba(248,81,73,0.08);
+      color: var(--red);
+      border: 1px solid rgba(248,81,73,0.18);
+      opacity: 0.7;
+    }
+    .avatar-saved {
+      border-color: #f0c040 !important;
+      color: #f0c040 !important;
+    }
+
+    .empty-state {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 20px; text-align: center;
+      color: var(--text-muted);
+      gap: 10px;
+    }
+    .empty-state .icon { font-size: 36px; }
+    .empty-state p { font-size: 12px; line-height: 1.5; max-width: 220px; }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .footer-left { font-size: 10.5px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 12px; height: 12px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px; padding: 7px 14px;
+      border-radius: 20px;
+      opacity: 0; transition: opacity 0.25s;
+      pointer-events: none; white-space: nowrap;
+      z-index: 100;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">💬</div>
+  <div class="header-text">
+    <h1>WA Group Extractor</h1>
+    <p>Extract contacts → CSV with group &amp; year</p>
+  </div>
+</div>
+
+<!-- Status -->
+<div id="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-text">Checking connection…</span>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-val" id="cnt-total">0</div>
+    <div class="stat-label">Contacts</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="cnt-groups">0</div>
+    <div class="stat-label">Groups</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="cnt-saved" style="color:#f0c040">0</div>
+    <div class="stat-label">★ Saved</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="cnt-past">0</div>
+    <div class="stat-label">Past/Left</div>
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="actions">
+  <button class="btn btn-primary" id="btn-extract" disabled>
+    <span id="extract-icon">📥</span>
+    <span id="extract-label">Extract Current Group</span>
+  </button>
+</div>
+
+<!-- Progress bar (shown during extraction) -->
+<div id="progress-wrap">
+  <div class="progress-label" id="progress-label">Starting…</div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+</div>
+
+<div class="actions" id="actions-export">
+
+  <div class="btn-row">
+    <button class="btn btn-secondary" id="btn-export" disabled>
+      ⬇️ Raw CSV
+    </button>
+    <button class="btn btn-secondary" id="btn-vcf" disabled>
+      📇 VCF
+    </button>
+  </div>
+
+  <button class="btn btn-google" id="btn-google" disabled>
+    <svg width="14" height="14" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.1 0 5.6 1.1 7.6 2.8l5.7-5.7C33.7 3.5 29.2 1.5 24 1.5 14.8 1.5 7 7.4 3.9 15.5l6.6 5.1C12.1 14.1 17.5 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.2-4.5 6.8l7 5.4c4.1-3.8 6.5-9.4 6.5-16.2h-.3z"/><path fill="#FBBC05" d="M10.5 28.4A14.5 14.5 0 0 1 9.5 24c0-1.5.3-3 .7-4.4l-6.6-5.1A22.4 22.4 0 0 0 1.5 24c0 3.6.9 7 2.4 10l6.6-5.6z"/><path fill="#34A853" d="M24 46.5c5.2 0 9.5-1.7 12.7-4.6l-7-5.4c-1.7 1.2-3.9 1.9-5.7 1.9-6.5 0-11.9-4.4-13.5-10.4l-6.6 5.6C7 41.8 14.9 46.5 24 46.5z"/></svg>
+    Export for Google Contacts
+  </button>
+
+  <div class="btn-row">
+    <button class="btn btn-secondary" id="btn-copy" disabled>
+      📋 Copy All
+    </button>
+    <button class="btn btn-danger" id="btn-clear" disabled>
+      🗑 Clear
+    </button>
+  </div>
+</div>
+
+<!-- Instructions -->
+<div class="instructions" id="instructions">
+  <strong>How to use:</strong>
+  <ol>
+    <li>Open <strong>WhatsApp Web</strong> in this tab</li>
+    <li>Navigate to a group chat</li>
+    <li>Click the group header → click <strong>View all</strong> members</li>
+    <li>Come back here and click <strong>Extract</strong></li>
+    <li>The extension will <strong>auto-scroll</strong> and load every member</li>
+    <li>Repeat for each group, then export</li>
+  </ol>
+</div>
+
+<!-- Filter -->
+<div class="filter-bar" id="filter-bar" style="display:none">
+  <input type="text" id="filter-input" placeholder="Search name, group…" />
+  <select id="filter-source">
+    <option value="">All</option>
+    <option value="current">Current</option>
+    <option value="past">Past</option>
+    <option value="left">Left</option>
+    <option value="added">Added</option>
+    <option value="saved">★ Saved</option>
+    <option value="unsaved">Unsaved</option>
+    <option value="nophone">No Phone</option>
+  </select>
+</div>
+
+<!-- Contact list -->
+<div class="list-wrap" id="list-wrap" style="display:none">
+  <div id="contact-list"></div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span class="footer-left" id="footer-count">No contacts loaded</span>
+  <span id="footer-group" style="font-size:11px;color:var(--text-muted)"></span>
+</div>
+
+<div id="toast"></div>
+
+<script src="popup.js"></script>
+</body>
+</html>
